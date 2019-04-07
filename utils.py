@@ -1,18 +1,9 @@
 
-from geopy.geocoders import Nominatim
-from geopy import distance
 from math import sin,pi
 import scipy.integrate
-
-
-def get_cityname(cityname):
-	return (lat,lon)
-
-# get distance with Geopy
-def get_distance_by_latlon(dep_city,term_city):
-	#dc_cord = get_lat_lon(dep_city) 
-	#tc_cord = get_lat_lon(term_city)
-	return distance.great_circle(dc_cord,tc_cord).km
+import matplotlib.pyplot as plt
+import seaborn as sns
+import numpy as np
 
 class DailyEff(object):
 	def __init__(self, day, delta):
@@ -56,6 +47,60 @@ def get_lon_range(arr):
 def get_lat_range(arr):
 	x = [float(arr[i].split(',')[0]) for i in range(len(arr))]
 	return [min(x),max(x)]
+
+def init_arr(x):
+	a = []
+	for i in range(x):
+		a.append([])
+	return a
+
+def generate_attr(data,arr):
+	lenx = len(data)
+	result = init_arr(lenx)
+	i = 0
+	if arr == 'workeff':
+		for eachline in data:
+			for each in eachline:
+				result[i].append(each.workeff2) 
+			i+=1
+	elif arr == 'lateff':
+		for eachlline in data:
+			for each in eachline:
+				result[i].append(each.lateff2)
+			i+=1
+	elif arr == 'score':
+		for eachline in data:
+			for each in eachline:
+				result[i].append(each.score)
+			i+=1
+	return result
+
+
+def draw_heatmap(data):
+	sns.set()
+	sns.heatmap(data,cmap='GnBu',linewidths=.3)
+	plt.show()
+
+
+def get_entropy(data0):
+	n,m = np.shape(data0)
+	maxium=np.max(data0,axis=0)
+	minium=np.min(data0,axis=0)
+	data= (data0-minium)*1.0/(maxium-minium)
+	sumzb=np.sum(data,axis=0)
+	a=data*1.0
+	a[np.where(data==0)]=0.0001
+	e=(-1.0/np.log(n))*np.sum(data*np.log(a),axis=0)
+	w=(1-e)/np.sum(1-e)
+	recodes=np.sum(data*w,axis=1)
+	return recodes
+
+
+def draw_barth(names,data):
+	sns.barplot(names, data, palette="GnBu", orient="v")
+	plt.ylabel('comprehensive score')
+	sns.despine(bottom=True)
+	plt.show()
 
 
 

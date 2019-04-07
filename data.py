@@ -1,24 +1,21 @@
 import json
 from urllib.request import urlopen, quote
 import requests,csv
-import pandas as pd #导入这些库后边都要用到
+import pandas as pd 
 import pytz
 from datetime import datetime
+from utils import *
+from city import City
 
-def participants_data(start=0,end=6):
+def participants_data(start=6,end=17):
     cities = pd.read_excel('data.xlsx', sheet_name='pcity')    
-    return [ cities['addr'][i] for i in range(start,end) ]
+    return [cities['addr'][i] for i in range(start,end)]
 
-def getlnglat(address):
-    url = 'http://api.map.baidu.com/geocoder/v2/'
-    output = 'json'
-    ak = 'hHaZWpPYRd8ce3NXPPOZIcglv60GXwCe'
-    add = quote(address) #由于本文城市变量为中文，为防止乱码，先用quote进行编码
-    uri = url + '?' + 'address=' + add  + '&output=' + output + '&ak=' + ak
-    req = urlopen(uri)
-    res = req.read().decode() #将其他编码的字符串解码成unicode
-    temp = json.loads(res) #对json数据进行解析
-    return temp 
+def city_data(start=0,end=3):
+    cities = pd.read_excel('data.xlsx',sheet_name='citylist2')
+    return [City(cities['City'][i],cities['Lat'][i],cities['Lon'][i],
+        cities['CPI'][i],cities['GDP'][i],cities['CityRank_index'][i],
+        cities['CityRank_outlook'][i]) for i in range(start,end)]
 
 def get_timezone(address):
     # example : http://api.map.baidu.com/timezone/v1?coord_type=wgs84ll&location=-36.52,174.46&timestamp=1473130354&ak=你的ak
@@ -64,8 +61,58 @@ print(tz_delta(addr1,addr2))
 """
 def tz_delta(addr1,addr2):
     delta = float(addr1.split(',')[1])-float(addr2.split(',')[1])
-    #print(delta/15)
+    # print(delta/15)
     return delta/15
+
+#calculate work e and lat e
+def cal_work_eff(x,y,pdata):
+    
+    des = str(y)+','+str(x)
+    total = 0
+    result_matrix = []
+    for each in pdata:
+        delta = tz_delta(each,des)
+        if delta<-12:
+            delta = delta+24
+        if delta>12:
+            delta = delta-24
+        #print(delta)
+        cur_eff = [DailyEff(day,delta).cal_eff()[0] for day in range(3)]
+        result_matrix.append(cur_eff)
+        sum_eff = sum(cur_eff)
+        total += sum_eff
+    return {
+     'matrix': result_matrix,
+     'result':total
+    }
+
+
+def cal_lat_eff(x,pdata):
+    total = 0
+    result_matrix = []
+    for each in pdata:
+        delta = float(each.split(',')[0])-x
+        sum_eff = lat_eff(delta)
+        result_matrix.append(sum_eff)
+        total += sum_eff
+    return {
+     'matrix': result_matrix,
+     'result':total
+    }
+
+
+# put score into 0-1
+def get_score(arr):
+    amin = min(arr)
+    amax = max(arr)
+    return [(arr[i]-amin)/(amax-amin) for i in range(len(arr))]
+
+
+
+
+
+
+
 
 
 
